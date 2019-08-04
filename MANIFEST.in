@@ -1,0 +1,2 @@
+include st_git_hooks/pre-commit
+include st_git_hooks/post-commit
