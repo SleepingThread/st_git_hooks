@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import logging
 from git import Repo
 
 
@@ -33,40 +34,32 @@ if __name__=="__main__":
 	else:
 		version_filename = "version.py"
 
+	_locs = {}
+	try:
+		_code_file = open(version_filename, "r")
+		_code = _code_file.read()
+		_code_file.close()
+		exec(_code, {}, _locs)
+	except IOError as e:
+		logging.info("No such file: %s"%version_filename)
+
+	version = _locs.get("version","0.0.0")
+
+	# get current branch
+	branch = Repo("./").active_branch.name
+
 	if sys.argv[1]=="precommit":
-		try:
-			_code_file = open(version_filename, "r")
-			_code = _code_file.read()
-			_code_file.close()
-			_locs = {}
-			exec(_code, {}, _locs)
-		except:
-			pass
 
-		version = _locs.get("version","0.0.0")
-
-		# get current branch
-		branch = Repo("./").active_branch.name
 		version = incrementVersion(version)
 
-		_code_file = open(version_filename, "w")
-		_code = "branch = \"%s\"\nversion = \"%s\"\n" % (branch, version)
-		_code_file.write(_code)
-		_code_file.close()
+		with open(version_filename,"w") as _code_file:
+			_code = "branch = \"%s\"\nversion = \"%s\"\n" % (branch, version)
+			_code_file.write(_code)
 
 		# add changed version file
 		Repo("./").git.add(version_filename)
 
 	elif sys.argv[1]=="postcommit":
-
-		# add tag
-		try:
-			_code_file = open(version_filename, "r")
-			_code = _code_file.read()
-			_code_file.close()
-			exec (_code, globals(), locals())
-		except:
-			pass
 
 		Repo("./").git.tag("%s_%s"%(branch,version))
 
@@ -87,4 +80,3 @@ if __name__=="__main__":
 
 		with open(_post_commit_fn, "a") as _file:
 			_file.write(" %s"%_version_root)
-
